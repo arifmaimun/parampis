@@ -1,4 +1,4 @@
-# Vet Patient Management App
+# Parampis - Vet Patient Management App
 
 Aplikasi management pasien untuk dokter hewan yang dibangun dengan Next.js, Supabase, dan Google Drive integration.
 
@@ -34,8 +34,8 @@ Aplikasi management pasien untuk dokter hewan yang dibangun dengan Next.js, Supa
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/arifmaimun/vet-patient-management.git
-cd vet-patient-management
+git clone https://github.com/arifmaimun/parampis.git
+cd parampis
 ```
 
 2. Install dependencies:
