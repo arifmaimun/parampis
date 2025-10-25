@@ -1,0 +1,447 @@
+// This is your Prisma schema file for PostgreSQL (Production)
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("PROD_DATABASE_URL")
+}
+
+// User Profile - Profil dokter/praktik
+model UserProfile {
+  id                String   @id @default(cuid())
+  fullName          String
+  strNumber         String?  // Surat Tanda Registrasi
+  phone             String
+  email             String?
+  address           String?
+  profilePhoto      String?  // URL foto profil
+  logoUrl           String?  // URL logo praktik
+  signatureUrl      String?  // URL tanda tangan digital
+  bankName          String?
+  bankAccountNumber String?
+  bankAccountHolder String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("user_profiles")
+}
+
+// Master Data - Lokasi Praktek
+model Location {
+  id          String  @id @default(cuid())
+  name        String
+  type        String  // "home_visit" | "klinik"
+  address     String
+  schedule    String? // "Senin-Jumat 08:00-17:00"
+  isActive    Boolean @default(true)
+  isDefault   Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  medicalRecords MedicalRecord[]
+  appointments   Appointment[]
+  patients       Patient[]
+
+  @@map("locations")
+}
+
+// Master Data - Jenis Hewan
+model AnimalSpecies {
+  id           String  @id @default(cuid())
+  name         String  @unique
+  isActive     Boolean @default(true)
+  displayOrder Int     @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  patients Patient[]
+
+  @@map("animal_species")
+}
+
+// Master Data - Jenis Perusahaan
+model CompanyType {
+  id           String  @id @default(cuid())
+  name         String  @unique
+  isActive     Boolean @default(true)
+  displayOrder Int     @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  clients Client[]
+
+  @@map("company_types")
+}
+
+// Client/Pemilik Hewan
+model Client {
+  id              String   @id @default(cuid())
+  name            String
+  type            String   // "personal" | "company"
+  companyName     String?
+  companyTypeId   String?
+  picName         String?  // Person in Charge
+  picPhone        String?
+  taxId           String?  // NPWP
+  idCardNumber    String?  // No. KTP
+  phone           String
+  email           String?
+  address         String?
+  isFavorite      Boolean  @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastContactedAt DateTime?
+
+  // Relations
+  companyType      CompanyType?     @relation(fields: [companyTypeId], references: [id])
+  patientOwnerships PatientOwnership[]
+  medicalRecords   MedicalRecord[]
+  appointments     Appointment[]
+  invoices         Invoice[]
+
+  @@map("clients")
+}
+
+// Pasien/Hewan
+model Patient {
+  id              String    @id @default(cuid())
+  name            String
+  speciesId       String
+  breed           String?
+  gender          String    // "JANTAN" | "BETINA" | "SPAY" | "STERIL" | "UNKNOWN"
+  furColor        String?
+  microchipNumber String?
+  insuranceInfo   String?
+  dateOfBirth     DateTime?
+  weight          Float?    // kg
+  photoUrl        String?
+  photoDriveId    String?
+  locationId      String?
+  isFavorite      Boolean   @default(false)
+  lastVisited     DateTime?
+  allergies       String?
+  specialNotes    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  species           AnimalSpecies     @relation(fields: [speciesId], references: [id])
+  location          Location?         @relation(fields: [locationId], references: [id])
+  patientOwnerships PatientOwnership[]
+  medicalRecords    MedicalRecord[]
+  appointments      Appointment[]
+  invoices          Invoice[]
+  vaccinations      Vaccination[]
+  inventoryUsage    InventoryUsage[]
+
+  @@map("patients")
+}
+
+// Junction Table - Many-to-Many Client-Patient
+model PatientOwnership {
+  id              String    @id @default(cuid())
+  patientId       String
+  clientId        String
+  ownershipType   String    // "PRIMARY" | "CO_OWNER" | "GUARDIAN" | "TEMPORARY"
+  isPrimaryOwner  Boolean   @default(false)
+  startDate       DateTime?
+  endDate         DateTime?
+  relationship    String?   // "Owner", "Co-owner", "Guardian", etc.
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, clientId])
+  @@map("patient_ownerships")
+}
+
+// Rekam Medis
+model MedicalRecord {
+  id                    String    @id @default(cuid())
+  date                  DateTime
+  locationId            String
+  broughtByClientId     String
+  patientId             String
+  weight                Float?    // kg
+  temperature           Float?    // °C
+  heartRate             Int?      // bpm
+  respiratoryRate       Int?      // rpm
+  bloodPressure         String?
+  examinationType       String    // "rutin" | "emergency" | "follow-up"
+  complaint             String?   // Keluhan
+  diagnosis             String
+  treatment             String
+  prescription          String?   // Resep obat
+  followUpNotes         String?
+  nextFollowUpDate      DateTime?
+  invoiceId             String?   // Reference to invoice, no relation
+  photoUrls             String[]  // Array of photo URLs (PostgreSQL supports arrays)
+  photoDriveIds         String[]  // Array of Google Drive file IDs
+  voiceNotesUrl         String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  location          Location          @relation(fields: [locationId], references: [id])
+  broughtByClient   Client            @relation(fields: [broughtByClientId], references: [id])
+  patient           Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  inventoryUsage    InventoryUsage[]
+
+  @@map("medical_records")
+}
+
+// Appointment/Jadwal
+model Appointment {
+  id              String    @id @default(cuid())
+  date            DateTime
+  time            String    // "08:00"
+  locationId      String
+  patientId       String
+  clientId        String
+  status          String    @default("scheduled") // "scheduled" | "completed" | "cancelled"
+  address         String?   // Alamat untuk home visit
+  notes           String?
+  reminderSentAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  location Location @relation(fields: [locationId], references: [id])
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  client   Client   @relation(fields: [clientId], references: [id])
+
+  @@map("appointments")
+}
+
+// Invoice/Tagihan
+model Invoice {
+  id                String    @id @default(cuid())
+  invoiceNumber     String    @unique
+  date              DateTime
+  clientId          String
+  patientId         String?
+  medicalRecordId   String?   // Reference to medical record, no relation
+  status            String    @default("unpaid") // "unpaid" | "paid" | "cancelled" | "overdue"
+  dueDate           DateTime
+  paymentDate       DateTime?
+  paymentMethod     String?
+  subtotal          Float
+  discount          Float     @default(0)
+  tax               Float     @default(0)
+  total             Float
+  pdfUrl            String?
+  pdfDriveId        String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  client         Client          @relation(fields: [clientId], references: [id])
+  patient        Patient?        @relation(fields: [patientId], references: [id])
+  invoiceItems   InvoiceItem[]
+
+  @@map("invoices")
+}
+
+// Detail Item Invoice
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int
+  unitPrice   Float
+  subtotal    Float
+  createdAt   DateTime @default(now())
+
+  // Relations
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}
+
+// Template Layanan
+model ServiceTemplate {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  defaultPrice Float
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("service_templates")
+}
+
+// Template Rekam Medis
+model MedicalTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  category        String   // "vaksinasi" | "grooming" | "konsultasi" | "emergency" | "checkup"
+  defaultDiagnosis String?
+  defaultTreatment String?
+  checklistItems  String[] // Array of checklist items (PostgreSQL supports arrays)
+  notesTemplate   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("medical_templates")
+}
+
+// Jadwal Vaksinasi
+model Vaccination {
+  id                String    @id @default(cuid())
+  patientId         String
+  vaccineType       String
+  vaccinationDate   DateTime
+  nextVaccinationDate DateTime?
+  status            String    @default("due") // "due" | "completed" | "overdue"
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("vaccinations")
+}
+
+// Inventory Pribadi Dokter
+model Inventory {
+  id              String    @id @default(cuid())
+  name            String
+  category        String    // "obat" | "vaksin" | "peralatan" | "supplies"
+  currentStock    Int
+  unit            String    // "ml" | "tablet" | "pcs" | "box" | "botol" | "ampul"
+  unitPrice       Float     // Harga beli per satuan
+  minStock        Int       // Minimum stok untuk alert
+  expiredDate     DateTime?
+  supplier        String?
+  locationIds     String[]  // Array of location IDs where this item is used (PostgreSQL supports arrays)
+  isActive        Boolean   @default(true)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastRestockedAt DateTime?
+
+  // Relations
+  inventoryUsage   InventoryUsage[]
+  inventoryRestocks InventoryRestock[]
+
+  @@map("inventory")
+}
+
+// History Penggunaan Inventory
+model InventoryUsage {
+  id                String    @id @default(cuid())
+  inventoryId       String
+  medicalRecordId   String?
+  patientId         String
+  locationId        String
+  quantityUsed      Int
+  unitCostAtTime    Float
+  usedByLocation    String    // "home_visit" | "lokasi_praktek_pribadi"
+  notes             String?
+  createdAt         DateTime  @default(now())
+
+  // Relations
+  inventory     Inventory     @relation(fields: [inventoryId], references: [id])
+  medicalRecord MedicalRecord? @relation(fields: [medicalRecordId], references: [id])
+  patient       Patient       @relation(fields: [patientId], references: [id])
+
+  @@map("inventory_usage")
+}
+
+// History Restock Inventory
+model InventoryRestock {
+  id            String    @id @default(cuid())
+  inventoryId   String
+  quantityAdded Int
+  costPerUnit   Float
+  totalCost     Float
+  supplier      String?
+  purchaseDate  DateTime
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+
+  @@map("inventory_restocks")
+}
+
+// App Settings
+model Settings {
+  id                    String  @id @default(cuid())
+  invoicePrefix         String  @default("INV/")
+  invoiceCounter        Int     @default(1)
+  paymentMethods        String[] // Array of payment methods (PostgreSQL supports arrays)
+  invoiceTerms          String?
+  invoiceDueDays        Int     @default(7)
+  reminderEnabled       Boolean @default(true)
+  reminderDaysBefore     Int     @default(1)
+  reminderTemplate      String?
+  dateFormat            String  @default("DD/MM/YYYY")
+  currencyFormat        String  @default("Rp")
+  timezone              String  @default("WIB")
+  itemsPerPage          Int     @default(25)
+  autoBackupEnabled     Boolean @default(false)
+  backupFrequency       String  @default("weekly")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// Activity Logs
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  entityType  String
+  entityId    String?
+  description String?
+  timestamp   DateTime @default(now())
+  ipAddress   String?
+
+  @@map("activity_logs")
+}
+
+// Backup History
+model Backup {
+  id            String    @id @default(cuid())
+  filename      String
+  backupDate    DateTime
+  size          Int       // Size in bytes
+  status        String    // "success" | "failed"
+  googleDriveId String?
+  createdAt     DateTime  @default(now())
+
+  @@map("backups")
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // "vaccination_due" | "low_stock" | "expired_soon" | "invoice_overdue" | "follow_up" | "appointment_reminder" | "new_patient" | "system"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  actionUrl String?
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}

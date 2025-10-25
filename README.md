@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vet Patient Management App
+
+Aplikasi management pasien untuk dokter hewan yang dibangun dengan Next.js, Supabase, dan Google Drive integration.
+
+## Features
+
+- 🏥 Patient management
+- 📋 Medical records
+- 📅 Appointment scheduling
+- 💰 Invoice management
+- 📁 File storage with Google Drive
+- 🔐 Secure authentication with Supabase
+- 📱 Responsive design
+
+## Tech Stack
+
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)
+- **File Storage**: Google Drive API
+- **Database**: Prisma ORM
+- **Authentication**: Supabase Auth with Google OAuth
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- npm or yarn
+- Supabase account
+- Google Cloud Console project
+- Google Drive API enabled
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/arifmaimun/vet-patient-management.git
+cd vet-patient-management
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Configure your environment variables in `.env.local`:
+   - Supabase URL and keys
+   - Google Drive folder ID
+   - Database connection string
 
-## Learn More
+5. Set up the database:
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Run the development server:
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+7. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Environment Variables
 
-## Deploy on Vercel
+Create a `.env.local` file with the following variables:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Google Drive Configuration
+GOOGLE_DRIVE_FOLDER_ID=your-google-drive-folder-id
+
+# Database Configuration
+DATABASE_URL=file:./dev.db
+PROD_DATABASE_URL=postgresql://postgres:[password]@db.your-project.supabase.co:5432/postgres
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## Setup Guides
+
+- [Supabase Setup](docs/supabase-setup.md)
+- [Google Drive Integration](docs/google-drive-setup-guide.md)
+- [Authentication Setup](docs/test-auth-instructions.md)
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js app router
+│   ├── (dashboard)/       # Dashboard pages
+│   ├── auth/              # Authentication pages
+│   ├── actions/           # Server actions
+│   └── api/               # API routes
+├── components/            # React components
+│   ├── ui/                # UI components
+│   └── layout/            # Layout components
+└── lib/                   # Utilities and configurations
+    ├── supabase/          # Supabase client setup
+    ├── google-drive.ts    # Google Drive functions
+    └── prisma.ts          # Prisma client
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test your changes
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For support and questions, please open an issue on GitHub.
